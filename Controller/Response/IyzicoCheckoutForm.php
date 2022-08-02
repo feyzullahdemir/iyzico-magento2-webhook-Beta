@@ -1,25 +1,7 @@
 <?php
-/**
- * iyzico Payment Gateway For Magento 2
- * Copyright (C) 2018 iyzico
- * 
- * This file is part of Iyzico/Iyzipay.
- * 
- * Iyzico/Iyzipay is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 
 namespace Iyzico\Iyzipay\Controller\Response;
+
 
 use Iyzico\Iyzipay\Controller\IyzicoBase\IyzicoFormObjectGenerator;
 use Iyzico\Iyzipay\Controller\IyzicoBase\IyzicoResponseObjectGenerator;
@@ -27,10 +9,17 @@ use Iyzico\Iyzipay\Controller\IyzicoBase\IyzicoPkiStringBuilder;
 use Iyzico\Iyzipay\Controller\IyzicoBase\IyzicoRequest;
 use Magento\Checkout\Model\Type\Onepage;
 use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\App\CsrfAwareActionInterface;
+use Magento\Framework\App\RequestInterface;
+use Magento\Framework\App\Request\InvalidRequestException;
 
-class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action 
+
+
+
+
+class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements CsrfAwareActionInterface
 {
-    
+
     protected $_context;
     protected $_pageFactory;
     protected $_jsonEncoder;
@@ -49,7 +38,19 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
     protected $_guestCartManagement;
     protected $_storeManager;
     protected $_helper;
-    
+
+
+
+
+    public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
+    {
+        return null;
+    }
+
+    public function validateForCsrf(RequestInterface $request): ?bool
+    {
+        return true;
+    }
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Framework\Json\EncoderInterface $encoder,
@@ -69,6 +70,8 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
         \Magento\Checkout\Api\GuestPaymentInformationManagementInterface $guestCartManagement,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Iyzico\Iyzipay\Helper\IyzicoHelper $helper
+
+
     ) {
         parent::__construct($context);
         $this->_resultJsonFactory = $resultJsonFactory;
@@ -88,20 +91,44 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
         $this->_guestCartManagement = $guestCartManagement;
         $this->_storeManager = $storeManager;
         $this->_helper = $helper;
+
     }
+
+
 
     public function execute()
     {
+      return $this->iyzicoResponse();
+    }
+
+
+
+
+    /**
+     * @param  $webhook
+     * @param  $webhookPaymentConversationId
+     * @param  $webhookToken
+     * @return mixed
+     */
+    public function iyzicoResponse($webhook = null, $webhookPaymentConversationId= null, $webhookToken = null){
+
+
+
 
         $postData = $this->getRequest()->getPostValue();
         $resultRedirect = $this->_resultRedirect->create(ResultFactory::TYPE_REDIRECT);
         $this->_quote = $this->_checkoutSession->getQuote();
+        //echo $postData['token'];
+        //exit;
 
 
-        if(!isset($postData['token'])) {
-            
+
+
+
+        if(!isset($postData['token']) && $webhook != 'webhook') {
+
             $errorMessage = __('Token not found');
-            
+
                         /* Redirect Error */
             $this->_messageManager->addError($errorMessage);
             $resultRedirect->setPath('checkout/cart', ['_secure' => true]);
@@ -109,29 +136,29 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
 
         }
 
+        if ($webhook == 'webhook'){
+            $token = $webhookToken;
+            $conversationId = $webhookPaymentConversationId;
+        }
+        else
+        {
+            $token = $postData['token']; /* Add Filterr */
+            $conversationId  = "";
 
-        if($this->_customerSession->getIyziToken() != $postData['token']) {
-            
-            $errorMessage = __('Token Not Match');
-            $this->_messageManager->addError($errorMessage);
-            $resultRedirect->setPath('checkout/cart', ['_secure' => true]);
-            return $resultRedirect;
 
         }
 
 
-
-        $token = $postData['token']; /* Add Filterr */
         $customerId = 0;
         $apiKey = $this->_scopeConfig->getValue('payment/iyzipay/api_key');
         $secretKey = $this->_scopeConfig->getValue('payment/iyzipay/secret_key');
-        $sandboxStatus = $this->_scopeConfig->getValue('payment/iyzipay/sandbox'); 
+        $sandboxStatus = $this->_scopeConfig->getValue('payment/iyzipay/sandbox');
         $rand = uniqid();
-        $baseUrl = 'https://api.iyzipay.com'; 
+        $baseUrl = 'https://api.iyzipay.com';
         $currency = $this->_storeManager->getStore()->getCurrentCurrency()->getCode();
         $this->_quote->setIyziCurrency($currency);
 
-        
+
         if($sandboxStatus)
             $baseUrl = 'https://sandbox-api.iyzipay.com';
 
@@ -142,12 +169,49 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
         if($this->_customerSession->isLoggedIn()){
             $customerId = $this->_customerSession->getCustomerId();
         }
-        
-        $tokenDetailObject        = $iyzicoResponseObject->generateTokenDetailObject('123456789',$token);
+
+        $tokenDetailObject        = $iyzicoResponseObject->generateTokenDetailObject($conversationId,$token);
         $iyzicoPkiString          = $iyzicoPkiStringBuilder->pkiStringGenerate($tokenDetailObject);
         $authorization            = $iyzicoPkiStringBuilder->authorizationGenerate($iyzicoPkiString,$apiKey,$secretKey,$rand);
         $iyzicoJson               = json_encode($tokenDetailObject,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
         $requestResponse          = $iyzicoRequest->iyzicoCheckoutFormDetailRequest($baseUrl,$iyzicoJson,$authorization);
+
+
+
+        if ($webhook == 'webhook' && $requestResponse->status == 'failure'){
+                return $this->webhookHttpResponse($requestResponse->errorCode.'-'.$requestResponse->errorMessage, 404);
+            }
+
+
+
+
+
+        if($webhook == 'webhook' && $requestResponse->status == 'success')
+        {
+
+
+          $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+          //$orders = $objectManager->create('Magento\Sales\Model\Order')->load($requestResponse->basketId);
+          $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
+          $connection = $resource->getConnection();
+          //return $requestResponse->basketId;
+          /*if(json_encode($orders->getData('entity_id')) == "null")
+          {
+            $orders = $objectManager->create('Magento\Sales\Model\Order')->load($requestResponse->basketId - 1);
+          }*/
+
+          $tableName = $resource->getTableName('iyzico_order'); //gives table name with prefix
+          //Select Data from table
+          $sql = "Select * FROM " . $tableName." Where order_id = ".$requestResponse->basketId;
+          $result = $connection->fetchAll($sql);
+          //return json_encode($result);
+          //if($orders->getStatus() == "processing" or $orders->getStatus() == "pending" or !empty($result))
+          if(!empty($result))
+          {
+            return $this->webhookHttpResponse("Order Exist - Sipariş zaten var.", 200);
+          }
+        }
+
 
         $requestResponse->paymentId = isset($requestResponse->paymentId) ? (int) $requestResponse->paymentId : '';
         $requestResponse->paidPrice = isset($requestResponse->paidPrice) ? (float) $requestResponse->paidPrice : '';
@@ -160,7 +224,19 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
         $iyziOrderModel->setData('order_id',$requestResponse->basketId);
         $iyziOrderModel->setData('status',$requestResponse->status);
         $iyziOrderModel->save($iyziOrderModel);
-        
+
+
+
+
+        /*Korumalı havale eft */
+        if($requestResponse->paymentStatus == 'INIT_BANK_TRANSFER' && $requestResponse->status == 'success'){
+          $this->_quote->setCheckoutMethod($this->_cartManagement::METHOD_GUEST);
+          $this->_cartManagement->placeOrder($this->_quote->getId());
+          $resultRedirect->setPath('checkout/onepage/success', ['_secure' => true]);
+          return $resultRedirect;
+          }
+
+
         /* Error Redirect Start */
         if($requestResponse->paymentStatus != 'SUCCESS' || $requestResponse->status != 'success') {
 
@@ -168,8 +244,10 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
 
             if($requestResponse->status == 'success' && $requestResponse->paymentStatus == 'FAILURE') {
                 $errorMessage = __('3D Security Error');
-                
+
             }
+
+
 
             /* Redirect Error */
             $this->_messageManager->addError($errorMessage);
@@ -178,16 +256,20 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
 
         }
 
+
+
         /* Order ID Confirmation */
-        if($this->_quote->getId() != $requestResponse->basketId) {
+        if($this->_quote->getId() != $requestResponse->basketId &&  $webhook != 'webhook') {
 
             $errorMessage = __('Order Not Match');
 
             /* Redirect Error */
             $this->_messageManager->addError($errorMessage);
             $resultRedirect->setPath('checkout/cart', ['_secure' => true]);
-            return $resultRedirect;            
+            return $resultRedirect;
         }
+
+
 
         /* Order Price Confirmation */
         $totalPrice = $this->_helper->priceParser(round($this->_quote->getGrandTotal(),2));
@@ -198,15 +280,19 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
             /* Redirect Error */
             $this->_messageManager->addError($errorMessage);
             $resultRedirect->setPath('checkout/cart', ['_secure' => true]);
-            return $resultRedirect;            
+            return $resultRedirect;
         }
+
 
         /* Error Redirect End */
 
         $this->_quote->setIyziPaymentStatus('success');
+        //echo $postData['token'];
+        //exit;
+
 
         /* Card Save */
-        if($customerId) {
+        if($customerId ) {
             if(isset($requestResponse->cardUserKey)) {
                 $iyziCardFind = $this->_iyziCardFactory->create()->getCollection()
                                                 ->addFieldToFilter('customer_id',$customerId)
@@ -229,19 +315,38 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
             }
         }
 
+
         $this->_quote->getPayment()->setMethod('iyzipay');
         $installmentFee = 0;
 
+
         if (isset($requestResponse->installment) && !empty($requestResponse->installment) && $requestResponse->installment > 1) {
 
-            $installmentFee = $requestResponse->paidPrice - $this->_quote->getGrandTotal(); 
+            $installmentFee = $requestResponse->paidPrice - $this->_quote->getGrandTotal();
             $this->_quote->setInstallmentFee($installmentFee);
             $this->_quote->setInstallmentCount($requestResponse->installment);
 
         }
 
+
+
         /* Set Payment Id */
         $this->_quote->setIyzicoPaymentId($requestResponse->paymentId);
+        if($webhook == 'webhook')
+            {
+
+              try {
+                $this->_quote->setCheckoutMethod($this->_cartManagement::METHOD_GUEST);
+                $this->_quote->setCustomerEmail($this->_customerSession->getEmail());
+                $this->_cartManagement->placeOrder($requestResponse->basketId);
+                return $this->webhookHttpResponse("Order Created by Webhook - Sipariş webhook tarafından oluşturuldu.", 200);
+              }
+              catch (\Exception $e) {
+           return  $this->webhookHttpResponse("Order Created by Webhook - Sipariş webhook tarafından oluşturuldu.", 200);
+       }
+
+            }
+
 
         if($this->_customerSession->isLoggedIn()) {
             /* Place Order - Login Checkout */
@@ -249,14 +354,28 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action
 
         } else {
 
-            $quoteId = $this->_checkoutSession->getGuestQuoteId();
-            
-            $this->_guestCartManagement->savePaymentInformationAndPlaceOrder($quoteId,$this->_customerSession->getEmail(),$this->_quote->getPayment(),$this->_checkoutSession->getBillingAddress());
+            $this->_quote->setCheckoutMethod($this->_cartManagement::METHOD_GUEST);
+            $this->_quote->setCustomerEmail($this->_customerSession->getEmail());
+            $this->_cartManagement->placeOrder($this->_quote->getId());
 
         }
-            
         $resultRedirect->setPath('checkout/onepage/success', ['_secure' => true]);
-        return $resultRedirect;
+        echo $postData['token'];
+
+
+
+    }
+
+    /**
+     * @param  $message
+     * @param  $status
+     * @return mixed
+     */
+    public function webhookHttpResponse($message , $status){
+      $httpMessage = array('message' => $message , 'status' => $status);
+      header('Content-Type: application/json, Status: '. $status, true, $status);
+      echo json_encode($httpMessage);
+      exit();
 
     }
 }
