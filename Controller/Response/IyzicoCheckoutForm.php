@@ -202,7 +202,7 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
 
           $tableName = $resource->getTableName('iyzico_order'); //gives table name with prefix
           //Select Data from table
-          $sql = "Select * FROM " . $tableName." Where order_id = ".$requestResponse->basketId;
+          $sql = "Select * FROM " . $tableName." Where order_id = ".$requestResponse->paymentId;
           $result = $connection->fetchAll($sql);
           //return json_encode($result);
           //if($orders->getStatus() == "processing" or $orders->getStatus() == "pending" or !empty($result))
