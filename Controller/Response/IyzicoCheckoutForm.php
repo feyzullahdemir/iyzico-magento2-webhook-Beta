@@ -360,7 +360,7 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
 
         }
         $resultRedirect->setPath('checkout/onepage/success', ['_secure' => true]);
-        echo $postData['token'];
+        return $resultRedirect;
 
 
 
