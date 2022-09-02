@@ -12,7 +12,7 @@ interface WebhookInterface
   /**
    * Add one number.
    *
-   * @param string $num1
+   * @param string $webhookUrlKey
    * @return string
    */
   public function getResponse($webhookUrlKey);

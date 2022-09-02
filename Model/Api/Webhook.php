@@ -10,7 +10,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\Order\Payment\Transaction\Builder as TransactionBuilder;
 use Magento\Sales\Model\OrderFactory;
-use Iyzico\Iyzipay\api\WebhookInterface;
+use Iyzico\Iyzipay\Api\WebhookInterface;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Iyzico\Iyzipay\Helper\webhookHelper;
 use Iyzico\Iyzipay\Controller\Response\IyzicoCheckoutForm;
