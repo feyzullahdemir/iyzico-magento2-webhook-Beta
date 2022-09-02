@@ -178,34 +178,26 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
 
 
 
-        if ($webhook == 'webhook' && $requestResponse->status == 'failure'){
+        if ($webhook == 'webhook' && $requestResponse->status == 'failure' && $requestResponse->paymentStatus != 'SUCCESS'){
                 return $this->webhookHttpResponse($requestResponse->errorCode.'-'.$requestResponse->errorMessage, 404);
             }
 
 
-
-
-
-        if($webhook == 'webhook' && $requestResponse->status == 'success')
+        if($webhook == 'webhook' && $requestResponse->status == 'success' &&  $requestResponse->paymentStatus == 'SUCCESS')
         {
 
 
           $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-          //$orders = $objectManager->create('Magento\Sales\Model\Order')->load($requestResponse->basketId);
+
           $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
           $connection = $resource->getConnection();
-          //return $requestResponse->basketId;
-          /*if(json_encode($orders->getData('entity_id')) == "null")
-          {
-            $orders = $objectManager->create('Magento\Sales\Model\Order')->load($requestResponse->basketId - 1);
-          }*/
+
 
           $tableName = $resource->getTableName('iyzico_order'); //gives table name with prefix
           //Select Data from table
-          $sql = "Select * FROM " . $tableName." Where order_id = ".$requestResponse->basketId;
+          $sql = "Select * FROM " . $tableName." Where payment_id = ".$requestResponse->paymentId;
           $result = $connection->fetchAll($sql);
-          //return json_encode($result);
-          //if($orders->getStatus() == "processing" or $orders->getStatus() == "pending" or !empty($result))
+
           if(!empty($result))
           {
             return $this->webhookHttpResponse("Order Exist - Sipariş zaten var.", 200);
@@ -332,7 +324,7 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
 
         /* Set Payment Id */
         $this->_quote->setIyzicoPaymentId($requestResponse->paymentId);
-        if($webhook == 'webhook')
+        if($webhook == 'webhook' && $requestResponse->status == 'success' &&  $requestResponse->paymentStatus == 'SUCCESS')
             {
 
               try {
@@ -359,8 +351,11 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
             $this->_cartManagement->placeOrder($this->_quote->getId());
 
         }
+
+
         $resultRedirect->setPath('checkout/onepage/success', ['_secure' => true]);
-        echo $postData['token'];
+        return $resultRedirect;
+
 
 
 
