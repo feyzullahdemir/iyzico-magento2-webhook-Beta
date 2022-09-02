@@ -195,7 +195,9 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
 
           $tableName = $resource->getTableName('iyzico_order'); //gives table name with prefix
           //Select Data from table
+
           $sql = "Select * FROM " . $tableName." Where payment_id = ".$requestResponse->paymentId;
+
           $result = $connection->fetchAll($sql);
 
           if(!empty($result))
@@ -355,7 +357,6 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
 
         $resultRedirect->setPath('checkout/onepage/success', ['_secure' => true]);
         return $resultRedirect;
-
 
 
 
