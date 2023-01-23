@@ -50,11 +50,6 @@
 				<field id="instructions" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="70" translate="label" type="textarea">
 					<label>Instructions</label>
 				</field>
-				<field id="webhook_url_key" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="70" translate="label" type="select">
-					<label>Webhook Url Key</label>
-					<source_model>Iyzico\Iyzipay\Model\Config\Source\createWebhookUrlKey</source_model>
-					<frontend_model>Iyzico\Iyzipay\Block\Adminhtml\Config\Disable</frontend_model>
-				</field>
 			</group>
 		</section>
 	</system>

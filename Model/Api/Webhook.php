@@ -76,19 +76,16 @@ class Webhook implements WebhookInterface
     //header('Content-Type: application/json');
     $response = json_decode($body);
 
-
-
     if (isset($response->iyziEventType) && isset($response->token) && isset($response->paymentConversationId))
     {
       $paymentConversationId = $response->paymentConversationId;
       $token = $response->token;
       $iyziEventType = $response->iyziEventType;
-      $createIyzicoSignature = base64_encode(sha1($this->webhookHelper->getSecretKey() . $iyziEventType . $token));
+      $createIyzicoSignature = base64_encode(sha1($this->webhookHelper->getSecretKey() . $iyziEventType . $token, true));
       if($createIyzicoSignature)
       {
 
         return $this->gethttpResponse($response);
-
 
       }
       else {
@@ -111,8 +108,9 @@ class Webhook implements WebhookInterface
       $webhook = 'webhook';
       $webhookPaymentConversationId = $response->paymentConversationId;
       $webhookToken = $response->token;
+      $webhookIyziEventType = $response->iyziEventType;
 
-      return $this->IyzicoCheckoutForm->iyzicoResponse($webhook , $webhookPaymentConversationId , $webhookToken);
+      return $this->IyzicoCheckoutForm->iyzicoResponse($webhook , $webhookPaymentConversationId , $webhookToken , $webhookIyziEventType);
 
     }
 

@@ -17,6 +17,7 @@ use Magento\Framework\App\Request\InvalidRequestException;
 
 
 
+
 class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements CsrfAwareActionInterface
 {
 
@@ -38,6 +39,7 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
     protected $_guestCartManagement;
     protected $_storeManager;
     protected $_helper;
+
 
 
 
@@ -72,6 +74,7 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
         \Iyzico\Iyzipay\Helper\IyzicoHelper $helper
 
 
+
     ) {
         parent::__construct($context);
         $this->_resultJsonFactory = $resultJsonFactory;
@@ -92,6 +95,7 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
         $this->_storeManager = $storeManager;
         $this->_helper = $helper;
 
+
     }
 
 
@@ -108,22 +112,17 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
      * @param  $webhook
      * @param  $webhookPaymentConversationId
      * @param  $webhookToken
+     * @param  $webhookIyziEventType
      * @return mixed
      */
-    public function iyzicoResponse($webhook = null, $webhookPaymentConversationId= null, $webhookToken = null){
+    public function iyzicoResponse($webhook = null, $webhookPaymentConversationId= null, $webhookToken = null, $webhookIyziEventType = null ){
 
 
-
+      try{
 
         $postData = $this->getRequest()->getPostValue();
         $resultRedirect = $this->_resultRedirect->create(ResultFactory::TYPE_REDIRECT);
         $this->_quote = $this->_checkoutSession->getQuote();
-        //echo $postData['token'];
-        //exit;
-
-
-
-
 
         if(!isset($postData['token']) && $webhook != 'webhook') {
 
@@ -183,23 +182,17 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
             }
 
 
+         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+         $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
+         $connection = $resource->getConnection();
+
         if($webhook == 'webhook' && $requestResponse->status == 'success' &&  $requestResponse->paymentStatus == 'SUCCESS')
         {
 
 
-          $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-
-          $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
-          $connection = $resource->getConnection();
-
-
-          $tableName = $resource->getTableName('iyzico_order'); //gives table name with prefix
-          //Select Data from table
-
-          $sql = "Select * FROM " . $tableName." Where payment_id = ".$requestResponse->paymentId;
-
+          $tableName = $resource->getTableName('sales_order'); //gives table name with prefix
+          $sql = "Select * FROM " . $tableName." Where quote_id = ".$requestResponse->basketId;
           $result = $connection->fetchAll($sql);
-
           if(!empty($result))
           {
             return $this->webhookHttpResponse("Order Exist - Sipariş zaten var.", 200);
@@ -211,24 +204,98 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
         $requestResponse->paidPrice = isset($requestResponse->paidPrice) ? (float) $requestResponse->paidPrice : '';
         $requestResponse->basketId =  isset($requestResponse->basketId) ? (int) $requestResponse->basketId : '';
 
+           /* webhook order update credit */
+        if($webhook == 'webhook')
+            {
+
+              $tableName = $resource->getTableName('sales_order');
+              $sql = "Select * FROM " . $tableName." Where quote_id = ".$requestResponse->basketId;
+              $result = $connection->fetchAll($sql);
+              $entity_id= $result[0]['entity_id'];
+              $order = $objectManager->create('\Magento\Sales\Model\Order')->load($entity_id);
+
+
+              if($webhookIyziEventType == 'CREDIT_PAYMENT_PENDING' && $requestResponse->paymentStatus == 'PENDING_CREDIT')
+              {
+                $order->setState('pending');
+                $order->setStatus('pending');
+                $historyComment = 'Alışveriş kredisi başvurusu sürecindedir.';
+                $order->addStatusHistoryComment($historyComment);
+                $order->save();
+                return 'ok';
+
+              }
+              if($webhookIyziEventType == 'CREDIT_PAYMENT_AUTH' && $requestResponse->status == 'success')
+              {
+                $order->setState('processing');
+                $order->setStatus('processing');
+                $historyComment = 'Alışveriş kredisi işlemi başarıyla tamamlandı.';
+                $order->addStatusHistoryComment($historyComment);
+                $order->save();
+                return 'ok';
+
+              }
+              if($webhookIyziEventType =='CREDIT_PAYMENT_INIT' && $requestResponse->status == 'INIT_CREDIT')
+              {
+                $order->setState('pending');
+                $order->setStatus('pending');
+                $historyComment = 'Alışveriş kredisi işlemi başlatıldı.';
+                $order->addStatusHistoryComment($historyComment);
+                $order->save();
+                return 'ok';
+
+              }
+			        if($webhookIyziEventType =='CREDIT_PAYMENT_AUTH' && $requestResponse->status == 'FAILURE')
+              {
+                $order->setState('canceled');
+                $order->setStatus('canceled');
+                $historyComment = 'Alışveriş kredisi işlemi başarısız.';
+                $order->addStatusHistoryComment($historyComment);
+                $order->save();
+                return 'ok';
+
+              }
+
+            }
+
+
+        if($webhook != 'webhook' && $requestResponse->paymentStatus == 'PENDING_CREDIT' && $requestResponse->status == 'success'){
+
+              $status = 'PENDING_CREDIT';
+            }
+            else {
+              $status = $requestResponse->status;
+            }
+
         /* Insert Order Log */
         $iyziOrderModel = $this->_iyziOrderFactory->create();
         $iyziOrderModel->setData('payment_id',$requestResponse->paymentId);
         $iyziOrderModel->setData('total_amount',$requestResponse->paidPrice);
         $iyziOrderModel->setData('order_id',$requestResponse->basketId);
-        $iyziOrderModel->setData('status',$requestResponse->status);
+        $iyziOrderModel->setData('status',$status);
         $iyziOrderModel->save($iyziOrderModel);
 
 
 
 
-        /*Korumalı havale eft */
+        /*Bank Transfer */
         if($requestResponse->paymentStatus == 'INIT_BANK_TRANSFER' && $requestResponse->status == 'success'){
           $this->_quote->setCheckoutMethod($this->_cartManagement::METHOD_GUEST);
           $this->_cartManagement->placeOrder($this->_quote->getId());
+          $this->_quote->setIyzicoPaymentId($requestResponse->paymentId);
           $resultRedirect->setPath('checkout/onepage/success', ['_secure' => true]);
           return $resultRedirect;
           }
+
+          /* credit shipping */
+        if($webhook != 'webhook' && $requestResponse->paymentStatus == 'PENDING_CREDIT' && $requestResponse->status == 'success'){
+            $this->_quote->setCheckoutMethod($this->_cartManagement::METHOD_GUEST);
+            $this->_quote->setIyziPaymentStatus('PENDING_CREDIT');
+            $this->_quote->setIyzicoPaymentId($requestResponse->paymentId);
+            $this->_cartManagement->placeOrder($this->_quote->getId());
+            $resultRedirect->setPath('checkout/onepage/success', ['_secure' => true]);
+            return $resultRedirect;
+            }
 
 
         /* Error Redirect Start */
@@ -278,12 +345,16 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
         }
 
 
-        /* Error Redirect End */
 
-        $this->_quote->setIyziPaymentStatus('success');
-        //echo $postData['token'];
-        //exit;
 
+        if($webhook != 'webhook' && $requestResponse->paymentStatus == 'PENDING_CREDIT' && $requestResponse->status == 'success'){
+
+            $this->_quote->setIyziPaymentStatus('PENDING_CREDIT');
+            $this->_quote->setIyzicoPaymentId($requestResponse->paymentId);
+            }
+            else {
+              $this->_quote->setIyziPaymentStatus('success');
+            }
 
         /* Card Save */
         if($customerId ) {
@@ -326,6 +397,7 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
 
         /* Set Payment Id */
         $this->_quote->setIyzicoPaymentId($requestResponse->paymentId);
+
         if($webhook == 'webhook' && $requestResponse->status == 'success' &&  $requestResponse->paymentStatus == 'SUCCESS')
             {
 
@@ -340,7 +412,6 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
        }
 
             }
-
 
         if($this->_customerSession->isLoggedIn()) {
             /* Place Order - Login Checkout */
@@ -357,6 +428,21 @@ class IyzicoCheckoutForm extends \Magento\Framework\App\Action\Action implements
 
         $resultRedirect->setPath('checkout/onepage/success', ['_secure' => true]);
         return $resultRedirect;
+
+
+      }
+      catch (\Exception $e) {
+        if($webhook == 'webhook')
+        {
+           return  $this->webhookHttpResponse($requestResponse->errorCode.'-'.$requestResponse->errorMessage, 404);
+        }
+        /* Redirect Error */
+        $this->_messageManager->addError($e);
+        $resultRedirect->setPath('checkout/cart', ['_secure' => true]);
+        return $resultRedirect;
+      }
+
+
 
 
 

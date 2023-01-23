@@ -39,6 +39,13 @@ class IyzicoRequest
 		    return $this->curlPost($json,$authorizationData,$url);
 
 	}
+	public function iyzicoPostWebhookUrlKey($baseUrl,$json,$authorizationData) {
+
+			$url = $baseUrl.'/payment/notification/update';
+
+		    return $this->curlPost($json,$authorizationData,$url);
+
+	}
 
 
 	public function iyzicoOverlayScriptRequest($json,$authorizationData) {
