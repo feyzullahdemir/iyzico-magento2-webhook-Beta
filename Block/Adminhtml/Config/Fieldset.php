@@ -1,5 +1,5 @@
 <?php
-namespace Iyzico\Iyzipay\Block\Adminhtml\Config;
+namespace Iyzico\PayWithIyzico\Block\Adminhtml\Config;
 
 use Magento\Framework\Data\Form\Element\AbstractElement;
 use Magento\Backend\Model\Auth\Session;
@@ -23,8 +23,6 @@ class Fieldset extends \Magento\Config\Block\System\Config\Form\Fieldset
 
     public function _getHeaderHtml($element)
     {
-
-
         if ($element->getIsNested()) {
             $html = '<tr class="nested"><td colspan="4"><div class="' . $this->_getFrontendClass($element) . '">';
         } else {
@@ -57,12 +55,10 @@ class Fieldset extends \Magento\Config\Block\System\Config\Form\Fieldset
         if ($this->getRequest()->getParam('website') || $this->getRequest()->getParam('store')) {
             $html .= '<colgroup class="use-default" />';
         }
-
         $html .= '<colgroup class="scope-label" /><colgroup class="" /><tbody>';
         $html .= '<div style="position:absolute;right: 0px;top:0px;display: flex;flex-direction: column;justify-content: center;">
-                    <img src="'.$this->getViewFileUrl('Iyzico_Iyzipay::iyzico/iyzico_logo.png').'" style="    width: 180px;
-    margin-left: auto;" /><span></span>
-
+                    <img src="'.$this->getViewFileUrl('Iyzico_PayWithIyzico::iyzico/paywithiyzico-logo.png').'" style="    width: 150px;
+    margin-left: auto;" />
                 </div>';
         return $html;
     }

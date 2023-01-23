@@ -3,7 +3,7 @@
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
-namespace Iyzico\Iyzipay\Block\Order;
+namespace Iyzico\PayWithIyzico\Block\Order;
 
 use Magento\Sales\Model\Order;
 
@@ -126,7 +126,7 @@ class Totals extends \Magento\Framework\View\Element\Template
                 ]
             );
         }
-        
+
         $this->_totals['subtotal'] = new \Magento\Framework\DataObject(
             ['code' => 'subtotal', 'value' => $source->getSubtotal(), 'label' => __('Subtotal')]
         );

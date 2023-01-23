@@ -1,6 +1,6 @@
 <?php
 \Magento\Framework\Component\ComponentRegistrar::register(
     \Magento\Framework\Component\ComponentRegistrar::MODULE,
-    'Iyzico_Iyzipay',
+    'Iyzico_PayWithIyzico',
     __DIR__
 );

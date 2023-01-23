@@ -19,12 +19,22 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Iyzico\PayWithIyzico\Model\ResourceModel\IyziOrder;
+namespace Iyzico\PayWithIyzico\Block\PayWithIyzico;
 
-class Collection extends \Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection
+class Index extends \Magento\Framework\View\Element\Template
 {
-    protected function _construct()
-    {
-        $this->_init('Iyzico\PayWithIyzico\Model\IyziOrder', 'Iyzico\PayWithIyzico\Model\ResourceModel\IyziOrder');
+
+    /**
+     * Constructor
+     *
+     * @param \Magento\Framework\View\Element\Template\Context  $context
+     * @param array $data
+     */
+    public function __construct(
+        \Magento\Framework\View\Element\Template\Context $context,
+        array $data = []
+    ) {
+        parent::__construct($context, $data);
     }
+
 }

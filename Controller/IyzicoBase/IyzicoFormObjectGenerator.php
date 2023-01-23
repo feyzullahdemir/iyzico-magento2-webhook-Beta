@@ -3,9 +3,9 @@
  * iyzico Payment Gateway For Magento 2
  * Copyright (C) 2018 iyzico
  *
- * This file is part of Iyzico/Iyzipay.
+ * This file is part of Iyzico/PayWithIyzico.
  *
- * Iyzico/Iyzipay is free software: you can redistribute it and/or modify
+ * Iyzico/PayWithIyzico is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -19,10 +19,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Iyzico\Iyzipay\Controller\IyzicoBase;
+namespace Iyzico\PayWithIyzico\Controller\IyzicoBase;
 
 use stdClass;
-use Iyzico\Iyzipay\Helper\IyzicoHelper;
+use Iyzico\PayWithIyzico\Helper\IyzicoHelper;
 
 class IyzicoFormObjectGenerator
 {
@@ -33,7 +33,7 @@ class IyzicoFormObjectGenerator
 	 	$this->helper = new IyzicoHelper();
 	 }
 
-	public function generateOption($checkoutSession,$cardUserKey,$locale,$currency,$cardId,$callBack,$magentoVersion) {
+	public function generateOption($checkoutSession,$locale,$currency,$cardId,$callBack,$magentoVersion) {
 
 		$iyzico = new stdClass();
 		$helper = new IyzicoHelper();
@@ -45,10 +45,9 @@ class IyzicoFormObjectGenerator
 		$iyzico->currency                     = $currency;
 		$iyzico->basketId                     = $cardId;
 		$iyzico->paymentGroup                 = 'PRODUCT';
-		$iyzico->forceThreeDS                 = "0";
-		$iyzico->callbackUrl                  = $callBack."Iyzico_Iyzipay/response/iyzicocheckoutform";
-		$iyzico->cardUserKey                  = $cardUserKey;
-		$iyzico->paymentSource                = "MAGENTO2|".$magentoVersion."|SPACE-1.2.0";
+		$iyzico->callbackUrl                  = $callBack."Iyzico_PayWithIyzico/response/paywithiyzico";
+        $iyzico->cancelUrl 					  = $callBack;
+		$iyzico->paymentSource                = "MAGENTO2|".$magentoVersion."|SPACE-1.0|PWI";
 
 		return $iyzico;
 

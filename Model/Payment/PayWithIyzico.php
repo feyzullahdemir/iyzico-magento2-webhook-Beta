@@ -19,12 +19,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Iyzico\PayWithIyzico\Model\ResourceModel\IyziOrder;
+namespace Iyzico\PayWithIyzico\Model\Payment;
 
-class Collection extends \Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection
+class PayWithIyzico extends \Magento\Payment\Model\Method\AbstractMethod
 {
-    protected function _construct()
-    {
-        $this->_init('Iyzico\PayWithIyzico\Model\IyziOrder', 'Iyzico\PayWithIyzico\Model\ResourceModel\IyziOrder');
+    const PLUGIN_VERSION = '1.1.0';
+    protected $_code = "paywithiyzico";
+    protected $_isOffline = true;
+
+   public function isAvailable(
+        \Magento\Quote\Api\Data\CartInterface $quote = null
+    ) {
+
+        return parent::isAvailable($quote);
     }
+
 }

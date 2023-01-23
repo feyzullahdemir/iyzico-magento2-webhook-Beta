@@ -2,15 +2,14 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
 	<default>
 		<payment>
-			<iyzipay>
+			<paywithiyzico>
 				<active>1</active>
-				<model>Iyzico\Iyzipay\Model\Payment\Iyzipay</model>
+				<model>Iyzico\PayWithIyzico\Model\Payment\PayWithIyzico</model>
 				<order_status>pending</order_status>
-				<title>Kredi/Banka Kartı ile Ödeme</title>
+				<title>iyzico ile Öde</title>
 				<allowspecific>0</allowspecific>
 				<group>offline</group>
-				<checkout_language>TR</checkout_language>
-			</iyzipay>
+			</paywithiyzico>
 		</payment>
 	</default>
 </config>

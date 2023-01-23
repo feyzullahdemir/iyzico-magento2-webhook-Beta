@@ -3,9 +3,9 @@
  * iyzico Payment Gateway For Magento 2
  * Copyright (C) 2018 iyzico
  *
- * This file is part of Iyzico/Iyzipay.
+ * This file is part of Iyzico/PayWithIyzico.
  *
- * Iyzico/Iyzipay is free software: you can redistribute it and/or modify
+ * Iyzico/PayWithIyzico is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -19,18 +19,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Iyzico\Iyzipay\Controller\IyzicoBase;
+namespace Iyzico\PayWithIyzico\Controller\IyzicoBase;
 
 class IyzicoRequest
 {
+    public function iyzicoPayWithIyzicoRequest($baseUrl,$json,$authorizationData) {
 
-	public function iyzicoCheckoutFormRequest($baseUrl,$json,$authorizationData) {
+        $url = $baseUrl.'/payment/pay-with-iyzico/initialize';
 
-			$url = $baseUrl.'/payment/iyzipos/checkoutform/initialize/auth/ecom';
+        return $this->curlPost($json,$authorizationData,$url);
 
-		    return $this->curlPost($json,$authorizationData,$url);
-
-	}
+    }
 
 	public function iyzicoCheckoutFormDetailRequest($baseUrl,$json,$authorizationData) {
 
@@ -39,31 +38,13 @@ class IyzicoRequest
 		    return $this->curlPost($json,$authorizationData,$url);
 
 	}
-	public function iyzicoPostWebhookUrlKey($baseUrl,$json,$authorizationData) {
-
-			$url = $baseUrl.'/payment/notification/update';
-
-		    return $this->curlPost($json,$authorizationData,$url);
-
-	}
-
-
-	public function iyzicoOverlayScriptRequest($json,$authorizationData) {
-
-			$baseUrl   = "https://iyziup.iyzipay.com/";
-			$url   	   = $baseUrl."v1/iyziup/protected/shop/detail/overlay-script";
-
-
-		    return $this->curlPost($json,$authorizationData,$url);
-
-	}
-
 
 	public function curlPost($json,$authorizationData,$url) {
 
+        $phpVersion = phpversion();
+
 		$curl = curl_init();
 		curl_setopt($curl, CURLOPT_URL, $url);
-		$content_length = 0;
 		if ($json) {
 		    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
 		    curl_setopt($curl, CURLOPT_POSTFIELDS, $json);
@@ -77,6 +58,7 @@ class IyzicoRequest
 		    $curl, CURLOPT_HTTPHEADER, array(
 		        "Authorization: " .$authorizationData['authorization'],
 		        "x-iyzi-rnd:".$authorizationData['rand_value'],
+                "php-version:". $phpVersion,
 		        "Content-Type: application/json",
 		    )
 		);

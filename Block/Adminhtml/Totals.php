@@ -3,7 +3,7 @@
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
-namespace Iyzico\Iyzipay\Block\Adminhtml;
+namespace Iyzico\PayWithIyzico\Block\Adminhtml;
 
 class Totals extends \Magento\Sales\Block\Order\Totals
 {

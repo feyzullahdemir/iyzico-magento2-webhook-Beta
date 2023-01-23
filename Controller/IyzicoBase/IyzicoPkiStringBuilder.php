@@ -3,9 +3,9 @@
  * iyzico Payment Gateway For Magento 2
  * Copyright (C) 2018 iyzico
  *
- * This file is part of Iyzico/Iyzipay.
+ * This file is part of Iyzico/PayWithIyzico.
  *
- * Iyzico/Iyzipay is free software: you can redistribute it and/or modify
+ * Iyzico/PayWithIyzico is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -19,7 +19,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Iyzico\Iyzipay\Controller\IyzicoBase;
+namespace Iyzico\PayWithIyzico\Controller\IyzicoBase;
 
 use stdClass;
 
@@ -143,8 +143,7 @@ class IyzicoPkiStringBuilder
 		$form_object->paymentSource 		= $objectData->paymentSource;
 		$form_object->currency 	  			= $objectData->currency;
 		$form_object->paidPrice   			= $objectData->paidPrice;
-		$form_object->forceThreeDS 			= $objectData->forceThreeDS;
-		$form_object->cardUserKey 			= $objectData->cardUserKey;
+        $form_object->cancelUrl 			= $objectData->cancelUrl;
 
 		return $form_object;
 	}
